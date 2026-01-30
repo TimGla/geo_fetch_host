@@ -20,6 +20,16 @@
             margin-bottom: 20px;
         }
 
+        .button-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
         .card {
             background: white;
             padding: 20px;
@@ -50,7 +60,6 @@
             letter-spacing: 1px;
         }
 
-        /* Large Data Display */
         .data-display {
             font-size: 2.5rem;
             font-weight: bold;
@@ -139,149 +148,56 @@
     <div class="dashboard-row">
         <div class="card">
             <div class="card-header">
-                <h3>Weight</h3>
+                <h3>DRILL SYSTEM</h3>
             </div>
-            <div class="data-display" id="weight-val">
-                12.45
+            <div class="data-display" id="drill-system-status">
+                -
             </div>
-            <div class="controls">
-                <button id="tare-btn" onclick="tareScale()" disabled style="width: 100%;">Tare Scale</button>
+            <div class ="button-row">
+                <div class="controls">
+                    <button class="service-button" onclick="drillHome()" disabled style="width: 100%;">home</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="drillDrill()" disabled style="width: 100%;">drill</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="drillRetract()" disabled style="width: 100%;">retract</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="drillRetrieve()" disabled style="width: 100%;">retrieve</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="stopRetrieving()" disabled style="width: 100%;">stop retrieving</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="drillClean()" disabled style="width: 100%;">clean</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="drillStopCleaning()" disabled style="width: 100%;">stop cleaning</button>
+                </div>
             </div>
         </div>
 
         <div class="card">
             <div class="card-header">
-                <h3>Upper Switch</h3>
+                <h3>CONTAINER SYSTEM</h3>
             </div>
-            <div class="data-display" id="switch-status">
-                Inactive
+            <div class="data-display" id="container-system-status">
+                -
             </div>
-            <div style="height: 34px;"></div> </div>
+            <div class="button-row">
+                <div class="controls">
+                    <button class="service-button" onclick="containerClose()" disabled style="width: 100%;">close</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="containerOpen()" disabled style="width: 100%;">open</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="containerNextSample()" disabled style="width: 100%;">next Sample</button>
+                </div>
+            </div>
     </div>
 
-    <script>
-        let ros;
-        let statusInterval;
-        let wasEspConnected = false;
-        let tareService;
-
-        const bridgeIndicator = document.getElementById('bridge-status');
-        const agentIndicator = document.getElementById('agent-status');
-        const agentMsg = document.getElementById('agent-msg');
-        const retryBtn = document.getElementById('retry-agent-btn');
-        const tareBtn = document.getElementById('tare-btn');
-
-        function connectToROS() {
-            if (ros) { ros.close(); }
-            if (statusInterval) { clearInterval(statusInterval); }
-
-            const address = document.getElementById('rosbridge-address').value || 'ws://localhost:9090';
-            ros = new ROSLIB.Ros({ url: address });
-
-            ros.on('connection', () => {
-                bridgeIndicator.className = 'status-circle status-green';
-                retryBtn.disabled = false;
-                tareBtn.disabled = false; // Enable Tare when connected
-                checkAgentNode(false);
-                statusInterval = setInterval(() => checkAgentNode(true), 5000); 
-            });
-
-            ros.on('error', () => { handleDisconnect(); });
-            ros.on('close', () => { handleDisconnect(); });
-        }
-
-        function handleDisconnect() {
-            bridgeIndicator.className = 'status-circle status-red';
-            agentIndicator.className = 'status-circle';
-            retryBtn.disabled = true;
-            tareBtn.disabled = true;
-            agentMsg.innerText = "Bridge closed.";
-        }
-
-        function checkAgentNode(autoCheck) {
-            if (!ros || !ros.isConnected) return;
-            
-            if (!autoCheck) {
-                agentIndicator.className = 'status-circle';
-                agentMsg.innerText = "Searching...";
-            }
-            
-            setTimeout(() => {
-                ros.getNodes((nodes) => {
-                    const isRunning = nodes.includes('/esp32');
-                    if (isRunning) {
-                        agentIndicator.className = 'status-circle status-green';
-                        agentMsg.innerText = "ESP connected";
-                        if (!wasEspConnected) {
-                            setupESPSubscriptions();
-                            setupESPServices();
-                            wasEspConnected = true;
-                        }
-    
-                    } else {
-                        agentIndicator.className = 'status-circle status-red';
-                        agentMsg.innerText = "ESP not detected";
-                        wasEspConnected = false;
-                    }
-                }, (err) => {
-                    agentIndicator.className = 'status-circle status-red';
-                });
-            }, 200); 
-        }
-
-        function setupESPServices() {
-            tareService = new ROSLIB.Service({
-                ros: ros,
-                name: '/tare_scale',
-                serviceType: 'std_srvs/srv/Trigger'
-            });
-        }
-
-        function setupESPSubscriptions() {
-            const weightTopic = new ROSLIB.Topic({
-                ros: ros,
-                name: '/current_weight',
-                messageType: 'std_msgs/msg/Float32'
-            });
-
-            const switchTopic = new ROSLIB.Topic({
-                ros: ros,
-                name: '/upper_switch_state',
-                messageType: 'std_msgs/msg/Bool'
-            });
-
-            weightTopic.subscribe(function (message) {
-                document.getElementById('weight-val').innerText = message.data.toFixed(2);
-            });
-
-            switchTopic.subscribe(function (message) {
-                const switchElement = document.getElementById('switch-status');
-                
-                if (message.data) {
-                    switchElement.innerText = "Active";
-                    switchElement.style.color = "#ff4d4d";
-                } else {
-                    switchElement.innerText = "Inactive";
-                    switchElement.style.color = "#2ecc71";
-                }
-            });
-        }
-
-        function tareScale() {
-            if (!tareService || !ros.isConnected) {
-                console.error("Error either service or ros not initalized");
-                return;
-            }
-            const request = new ROSLIB.ServiceRequest({});
-
-            tareService.callService(request, function(result) {
-                if (!result.success) {
-                    console.error("Tare failed: " + result.message);
-                }
-            }, function(error) {
-                console.error("Error:", error);
-            });
-        }
-    </script>
+<script src="dashboard.js"></script>
 </body>
 </html>
