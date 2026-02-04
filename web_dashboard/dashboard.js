@@ -1,6 +1,7 @@
 let ros;
 let statusInterval;
 let wasEspConnected = false;
+let wasGo2Connected = false;
 
 // Services
 let containerCloseService;
@@ -14,6 +15,9 @@ let drillRetrieveService;
 let drillStopRetrievingService;
 let drillDrillService;
 let drillRetractService;
+
+let go2SitService;
+let go2RiseService;
 
 // Drill Status
 const DrillState = {
@@ -41,8 +45,11 @@ const ContainerState = {
 
 const bridgeIndicator = document.getElementById('bridge-status');
 const agentIndicator = document.getElementById('agent-status');
+const go2BridgeIndicator = document.getElementById('go2-status');
 const agentMsg = document.getElementById('agent-msg');
+const go2BridgeMsg = document.getElementById('go2-bridge-msg');
 const retryBtn = document.getElementById('retry-agent-btn');
+const go2RetryBtn = document.getElementById('retry-go2-bridge-btn');
 const tareBtn = document.getElementById('tare-btn');
 
 function connectToROS() {
@@ -55,12 +62,17 @@ function connectToROS() {
     ros.on('connection', () => {
         bridgeIndicator.className = 'status-circle status-green';
         retryBtn.disabled = false;
+        go2RetryBtn.disabled = false;
         const buttons = document.querySelectorAll('.service-button');
         buttons.forEach(btn => {
             btn.disabled = false;
         });
         checkAgentNode(false);
-        statusInterval = setInterval(() => checkAgentNode(true), 5000); 
+        checkGo2BridgeNode(false);
+        statusInterval = setInterval(() => {
+            checkAgentNode(true);
+            checkGo2BridgeNode(true);
+        }, 5000); 
         console.log('Rosbridge established')
     });
 
@@ -77,12 +89,15 @@ function connectToROS() {
 function handleDisconnect() {
     bridgeIndicator.className = 'status-circle status-red';
     agentIndicator.className = 'status-circle';
+    go2BridgeIndicator.className = 'status-circle';
+    go2RetryBtn.disabled = true;
     retryBtn.disabled = true;
     const buttons = document.querySelectorAll('.service-button');
     buttons.forEach(btn => {
         btn.disabled = true;
     });
-    agentMsg.innerText = "Bridge closed.";
+    agentMsg.innerText = "Bridge closed";
+    go2BridgeMsg.innerText = "Bridge closed";
 }
 
 function checkAgentNode(autoCheck) {
@@ -114,6 +129,50 @@ function checkAgentNode(autoCheck) {
         });
     }, 200); 
 }
+
+function checkGo2BridgeNode(autoCheck) {
+    if (!ros || !ros.isConnected) return;
+
+    if (!autoCheck) {
+        go2BridgeIndicator.className = 'status-circle';
+        go2BridgeMsg.innerText = "Searching...";
+    }
+
+    setTimeout(() => {
+        ros.getNodes((nodes) => {
+            const isRunning = nodes.includes('/go2_bridge');
+            if (isRunning) {
+                go2BridgeIndicator.className = 'status-circle status-green';
+                go2BridgeMsg.innerText = "Go2 Bridge detected";
+                if (!wasGo2Connected) {
+                    setupGo2Services();
+                    wasGo2Connected = true;
+                }
+            } else {
+                go2BridgeIndicator.className = 'status-circle status-red';
+                go2BridgeMsg.innerText = "Go2 Bridge not detected";
+                wasGo2Connected = false;
+            }
+        }, (err) => {
+            agentIndicator.className = 'status-circle status-red';
+        });
+    }, 200); 
+}
+
+function setupGo2Services() {
+    go2SitService = new ROSLIB.Service({
+        ros: ros,
+        name: '/go2_sit',
+        serviceType: 'std_srvs/srv/Trigger'
+    });
+    go2RiseService = new ROSLIB.Service({
+        ros: ros,
+        name: '/go2_rise',
+        serviceType: 'std_srvs/srv/Trigger'
+    });
+}
+
+
 
 function setupESPServices() {
     containerCloseService = new ROSLIB.Service({
@@ -189,7 +248,7 @@ function setupESPSubscriptions() {
     });
 
     weightTopic.subscribe(function (message) {
-        //document.getElementById('weight-val').innerText = message.data.toFixed(2);
+        document.getElementById('container-sample-weight').innerText = message.data.toFixed(2);
     });
 
     containerSystemStateTopic.subscribe(function (message) {
@@ -199,21 +258,48 @@ function setupESPSubscriptions() {
     drillSystemStateTopic.subscribe(function (message) {
         document.getElementById('drill-system-status').innerText = DrillState[message.data].label;
     });
-
-
-    /** 
-    switchTopic.subscribe(function (message) {
-        const switchElement = document.getElementById('switch-status');
-        if (message.data) {
-            switchElement.innerText = "Active";
-            switchElement.style.color = "#ff4d4d";
-        } else {
-            switchElement.innerText = "Inactive";
-            switchElement.style.color = "#2ecc71";
-        }
-    });
-    */
 }
+
+
+
+function go2Sit() {
+    if (!go2SitService || !ros.isConnected) {
+        console.error("Error: Service or ROS not initialized");
+        return;
+    }
+
+    const request = new ROSLIB.ServiceRequest({});
+    go2SitService.callService(request, function(result) {
+        if (!result.success) {
+            console.error("Failed: " + result.message);
+            return;
+        }
+        console.log(result.message);
+    }, function(error) {
+        console.error("Error calling service:", error);
+    });
+}
+
+function go2Rise() {
+    if (!go2RiseService || !ros.isConnected) {
+        console.error("Error: Service or ROS not initialized");
+        return;
+    }
+
+    const request = new ROSLIB.ServiceRequest({});
+    go2RiseService.callService(request, function(result) {
+        if (!result.success) {
+            console.error("Failed: " + result.message);
+            return;
+        }
+        console.log(result.message);
+    }, function(error) {
+        console.error("Error calling service:", error);
+    });
+}
+
+
+
 
 function containerClose() {
     if (!containerCloseService || !ros.isConnected) {

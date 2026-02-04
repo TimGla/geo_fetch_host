@@ -68,6 +68,13 @@
             text-align: center;
         }
 
+        .dual-display {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 10px 0;
+        }
+
         .unit {
             font-size: 1rem;
             color: #95a5a6;
@@ -101,12 +108,26 @@
         button:hover:not(:disabled) { background-color: #0056b3; }
         button:disabled { background-color: #ccc; cursor: not-allowed; opacity: 0.6; }
 
+        #container-system-status, #container-sample-weight {
+            flex: 1;
+            text-align: center;
+        }
+
         .divider {
             height: 2px;
             background-color: #d1d8e0;
             margin: 30px 0;
             border: none;
         }
+
+        .data-display-divider {
+            width: 2px;            
+            height: 40px;        
+            background-color: #d1d8e0;
+            border: none;
+            margin: 0 15px;       
+            flex-shrink: 0;  
+            }
 
         .status-circle {
             width: 12px; height: 12px; border-radius: 50%;
@@ -133,6 +154,17 @@
 
         <div class="card">
             <div class="card-header">
+                <h3>Go2 Bridge Status</h3>
+                <div class="status-circle" id="go2-status"></div>
+            </div>
+            <div class="controls">
+                <p id="go2-bridge-msg" style="font-size: 0.8rem; color: #666; margin: 0; flex-grow: 1;">Connect Bridge first...</p>
+                <button id="retry-go2-bridge-btn" onclick="checkGo2BridgeNode(false)" disabled>Retry</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
                 <h3>ESP32 Status</h3>
                 <div class="status-circle" id="agent-status"></div>
             </div>
@@ -145,7 +177,45 @@
 
     <hr class="divider">
 
+
     <div class="dashboard-row">
+
+        <div class="card">
+            <div class="card-header">
+                <h3>Go2</h3>
+            </div>
+            <div class="button-row">
+                <div class="controls">
+                    <button class="service-button" onclick="go2Sit()" disabled style="width: 100%;">sit</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="go2Rise()" disabled style="width: 100%;">rise</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3>CONTAINER SYSTEM</h3>
+            </div>
+            <div class="data-display dual-display">
+                <div id="container-system-status">-</div>
+                <hr class="data-display-divider">
+                <div id="container-sample-weight">-</div>
+            </div>
+            <div class="button-row">
+                <div class="controls">
+                    <button class="service-button" onclick="containerClose()" disabled style="width: 100%;">close</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="containerOpen()" disabled style="width: 100%;">open</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="containerNextSample()" disabled style="width: 100%;">next Sample</button>
+                </div>
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header">
                 <h3>DRILL SYSTEM</h3>
@@ -178,24 +248,6 @@
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h3>CONTAINER SYSTEM</h3>
-            </div>
-            <div class="data-display" id="container-system-status">
-                -
-            </div>
-            <div class="button-row">
-                <div class="controls">
-                    <button class="service-button" onclick="containerClose()" disabled style="width: 100%;">close</button>
-                </div>
-                <div class="controls">
-                    <button class="service-button" onclick="containerOpen()" disabled style="width: 100%;">open</button>
-                </div>
-                <div class="controls">
-                    <button class="service-button" onclick="containerNextSample()" disabled style="width: 100%;">next Sample</button>
-                </div>
-            </div>
     </div>
 
 <script src="dashboard.js"></script>
