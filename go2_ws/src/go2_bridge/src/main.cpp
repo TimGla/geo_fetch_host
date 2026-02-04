@@ -1,9 +1,8 @@
+#include <iostream>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <unitree/robot/channel/channel_factory.hpp>
 #include <unitree/robot/go2/sport/sport_client.hpp>
-
-constexpr const char *go2_port = "ttyUSB0";
 
 class Go2Bridge : public rclcpp::Node {
 
@@ -46,9 +45,9 @@ private:
     }
 
 public:
-    Go2Bridge() : Node("go2_bridge") {
+    Go2Bridge(std::string port) : Node("go2_bridge") {
         // Initialize sport client for go2
-        unitree::robot::ChannelFactory::Instance()->Init(0, go2_port);
+        unitree::robot::ChannelFactory::Instance()->Init(0, port);
         sportClient.SetTimeout(10.0f);
         sportClient.Init();
 
@@ -66,8 +65,19 @@ public:
 };
 
 int main(int argc, char **argv) {
-    rclcpp::init(argc, argv);
-    rclcpp::spin(std::make_shared<Go2Bridge>());
+    if (argc != 2) {
+        std::cerr << "ERROR: Network Interface missing" << std::endl;
+        std::cerr << "Usage: ros2 run go2_bridge go2_bridge_node [port]" << std::endl;
+        return 1;
+    }
+    try {
+        rclcpp::init(argc, argv);
+        rclcpp::spin(std::make_shared<Go2Bridge>(argv[1]));
+    } catch (const std::exception &e) {
+        std::cerr << "ERROR: " << e.what() << std::endl;
+        rclcpp::shutdown();
+        return 1;
+    }
     rclcpp::shutdown();
     return 0;
 }
