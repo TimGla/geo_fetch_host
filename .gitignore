@@ -12,3 +12,8 @@ microros_ws/
 # Ignore micro-ROS generated firmware
 **/firmware/
 **/mcu_ws/
+
+**/.vscode/*
+!**/.vscode/settings.json
+!**/.vscode/tasks.json
+!**/.vscode/launch.json
