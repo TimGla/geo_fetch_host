@@ -131,6 +131,7 @@ function checkAgentNode(autoCheck) {
 
 function checkGo2BridgeNode(autoCheck) {
     if (!ros || !ros.isConnected) return;
+    console.log('Checking nodes')
 
     if (!autoCheck) {
         go2BridgeIndicator.className = 'status-circle';
@@ -139,6 +140,7 @@ function checkGo2BridgeNode(autoCheck) {
 
     setTimeout(() => {
         ros.getNodes((nodes) => {
+            console.log(nodes);
             const isRunning = nodes.includes('/go2_driver');
             if (isRunning) {
                 go2BridgeIndicator.className = 'status-circle status-green';
