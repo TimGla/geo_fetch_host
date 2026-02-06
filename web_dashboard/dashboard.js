@@ -16,8 +16,7 @@ let drillStopRetrievingService;
 let drillDrillService;
 let drillRetractService;
 
-let go2SitService;
-let go2RiseService;
+let go2Service;
 
 // Drill Status
 const DrillState = {
@@ -140,17 +139,17 @@ function checkGo2BridgeNode(autoCheck) {
 
     setTimeout(() => {
         ros.getNodes((nodes) => {
-            const isRunning = nodes.includes('/go2_bridge');
+            const isRunning = nodes.includes('/go2_driver');
             if (isRunning) {
                 go2BridgeIndicator.className = 'status-circle status-green';
-                go2BridgeMsg.innerText = "Go2 Bridge detected";
+                go2BridgeMsg.innerText = "Go2 Driver detected";
                 if (!wasGo2Connected) {
                     setupGo2Services();
                     wasGo2Connected = true;
                 }
             } else {
                 go2BridgeIndicator.className = 'status-circle status-red';
-                go2BridgeMsg.innerText = "Go2 Bridge not detected";
+                go2BridgeMsg.innerText = "Go2 Driver not detected";
                 wasGo2Connected = false;
             }
         }, (err) => {
@@ -160,15 +159,10 @@ function checkGo2BridgeNode(autoCheck) {
 }
 
 function setupGo2Services() {
-    go2SitService = new ROSLIB.Service({
+    go2Service = new ROSLIB.Service({
         ros: ros,
-        name: '/go2_sit',
-        serviceType: 'std_srvs/srv/Trigger'
-    });
-    go2RiseService = new ROSLIB.Service({
-        ros: ros,
-        name: '/go2_rise',
-        serviceType: 'std_srvs/srv/Trigger'
+        name: '/mode',
+        serviceType: 'go2_interfaces/srv/Mode'
     });
 }
 
@@ -263,13 +257,15 @@ function setupESPSubscriptions() {
 
 
 function go2Sit() {
-    if (!go2SitService || !ros.isConnected) {
+    if (!go2Service || !ros.isConnected) {
         console.error("Error: Service or ROS not initialized");
         return;
     }
 
-    const request = new ROSLIB.ServiceRequest({});
-    go2SitService.callService(request, function(result) {
+    const request = new ROSLIB.ServiceRequest({
+        mode: 'sit'
+    });
+    go2Service.callService(request, function(result) {
         if (!result.success) {
             console.error("Failed: " + result.message);
             return;
@@ -281,13 +277,15 @@ function go2Sit() {
 }
 
 function go2Rise() {
-    if (!go2RiseService || !ros.isConnected) {
+    if (!go2Service || !ros.isConnected) {
         console.error("Error: Service or ROS not initialized");
         return;
     }
 
-    const request = new ROSLIB.ServiceRequest({});
-    go2RiseService.callService(request, function(result) {
+    const request = new ROSLIB.ServiceRequest({
+        mode: 'rise_sit'
+    });
+    go2Service.callService(request, function(result) {
         if (!result.success) {
             console.error("Failed: " + result.message);
             return;
