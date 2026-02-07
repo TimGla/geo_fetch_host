@@ -8,7 +8,7 @@ class Go2Bridge : public rclcpp::Node {
 
 private:
     // Go2 Sport Client
-    unitree::robot::go2::SportClient sportClient;
+    //unitree::robot::go2::SportClient sportClient;
 
     // Services
     rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr sitService;
@@ -19,7 +19,7 @@ private:
         std::shared_ptr<std_srvs::srv::Trigger::Response> response) 
     {
         (void)request;
-        int32_t res = sportClient.Sit();
+        int32_t res = 0;//sportClient.Sit();
         if (res != 0) {
             response->message = "Error while sitting down";
             response->success = false;
@@ -34,7 +34,7 @@ private:
         std::shared_ptr<std_srvs::srv::Trigger::Response> response) 
     {
         (void)request;
-        int32_t res = sportClient.RiseSit();
+        int32_t res = 0;//sportClient.RiseSit();
         if (res != 0) {
             response->message = "Error while standing up down";
             response->success = false;
@@ -45,11 +45,11 @@ private:
     }
 
 public:
-    Go2Bridge(std::string port) : Node("go2_bridge") {
+    Go2Bridge(std::string port) : Node("go2_driver") {
         // Initialize sport client for go2
-        unitree::robot::ChannelFactory::Instance()->Init(0, port);
-        sportClient.SetTimeout(10.0f);
-        sportClient.Init();
+        //unitree::robot::ChannelFactory::Instance()->Init(0, port);
+        //sportClient.SetTimeout(10.0f);
+        //sportClient.Init();
 
         // Set up services
         sitService = this->create_service<std_srvs::srv::Trigger>(
@@ -65,11 +65,13 @@ public:
 };
 
 int main(int argc, char **argv) {
+    /** 
     if (argc != 2) {
         std::cerr << "ERROR: Network Interface missing" << std::endl;
         std::cerr << "Usage: ros2 run go2_bridge go2_bridge_node [port]" << std::endl;
         return 1;
     }
+        */
     try {
         rclcpp::init(argc, argv);
         rclcpp::spin(std::make_shared<Go2Bridge>(argv[1]));
