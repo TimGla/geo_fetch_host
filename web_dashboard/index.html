@@ -147,7 +147,7 @@
                 <div class="status-circle" id="bridge-status"></div>
             </div>
             <div class="controls">
-                <input type="text" id="rosbridge-address" placeholder="ws://localhost:9090">
+                <input type="text" id="rosbridge-address" placeholder="ws://localhost:9999">
                 <button onclick="connectToROS()">Connect</button>
             </div>
         </div>
@@ -208,10 +208,13 @@
                     <button class="service-button" onclick="containerClose()" disabled style="width: 100%;">close</button>
                 </div>
                 <div class="controls">
-                    <button class="service-button" onclick="containerOpen()" disabled style="width: 100%;">open</button>
+                    <button class="service-button" onclick="containerNextSample()" disabled style="width: 100%;">next sample</button>
                 </div>
                 <div class="controls">
-                    <button class="service-button" onclick="containerNextSample()" disabled style="width: 100%;">next Sample</button>
+                    <button class="service-button" onclick="containerReset()" disabled style="width: 100%;">reset</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="containerTare()" disabled style="width: 100%;">tare</button>
                 </div>
             </div>
         </div>
@@ -245,6 +248,27 @@
                 <div class="controls">
                     <button class="service-button" onclick="drillStopCleaning()" disabled style="width: 100%;">stop cleaning</button>
                 </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3>GeoFetch System</h3>
+            </div>
+            <div class="data-display" id="geofetch-system-status">
+                -
+            </div>
+            <div class ="button-row">
+                <div class="controls">
+                    <button class="service-button" onclick="systemPrepare()" disabled style="width: 100%;">prepare</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="systemDrill()" disabled style="width: 100%;">drill</button>
+                </div>
+                <div class="controls">
+                    <button class="service-button" onclick="systemCollect()" disabled style="width: 100%;">collect</button>
+                </div>
+                
             </div>
         </div>
 

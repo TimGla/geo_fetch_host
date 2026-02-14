@@ -5,8 +5,9 @@ let wasGo2Connected = false;
 
 // Services
 let containerCloseService;
-let containerOpenService;
 let containerNextSampleService;
+let containerResetService;
+let containerTareService;
 
 let drillHomeService;
 let drillCleanService;
@@ -15,6 +16,10 @@ let drillRetrieveService;
 let drillStopRetrievingService;
 let drillDrillService;
 let drillRetractService;
+
+let systemPrepareService;
+let systemDrillService;
+let systemCollectService;
 
 let go2Service;
 
@@ -34,10 +39,20 @@ const ContainerState = {
     0: { label: "Unknown" },
     1: { label: "Closing" },
     2: { label: "Closed" },
-    3: { label: "Opening" },
-    4: { label: "Ready" },
-    5: { label: "Revolving" },
-    6: { label: "FULL" }
+    3: { label: "Ready" },
+    4: { label: "Revolving" },
+    5: { label: "Full" }
+};
+
+// System Status
+const SystemState = {
+    0: { label: "Unknown" },
+    1: { label: "Preparing" },
+    2: { label: "Ready" },
+    3: { label: "Drilling" },
+    4: { label: "Collecting" },
+    5: { label: "Cleaning" },
+    6: { label: "Error" },
 };
 
 
@@ -55,7 +70,7 @@ function connectToROS() {
     if (ros) { ros.close(); }
     if (statusInterval) { clearInterval(statusInterval); }
 
-    const address = document.getElementById('rosbridge-address').value || 'ws://localhost:9090';
+    const address = document.getElementById('rosbridge-address').value || 'ws://localhost:9999';
     ros = new ROSLIB.Ros({ url: address });
 
     ros.on('connection', () => {
@@ -176,16 +191,22 @@ function setupESPServices() {
         name: '/container/close',
         serviceType: 'std_srvs/srv/Trigger'
     });
-    containerOpenService = new ROSLIB.Service({
-        ros: ros,
-        name: '/container/open',
-        serviceType: 'std_srvs/srv/Trigger'
-    });
     containerNextSampleService = new ROSLIB.Service({
         ros: ros,
         name: '/container/nextSample',
         serviceType: 'std_srvs/srv/Trigger'
     });
+    containerResetService = new ROSLIB.Service({
+        ros: ros,
+        name: '/container/reset',
+        serviceType: 'std_srvs/srv/Trigger'
+    });
+    containerTareService = new ROSLIB.Service({
+        ros: ros,
+        name: '/container/tare',
+        serviceType: 'std_srvs/srv/Trigger'
+    });
+
     drillHomeService = new ROSLIB.Service({
         ros: ros,
         name: '/drill/home',
@@ -222,6 +243,22 @@ function setupESPServices() {
         serviceType: 'std_srvs/srv/Trigger'
     });
 
+    systemPrepareService = new ROSLIB.Service({
+        ros: ros,
+        name: '/system/prepare',
+        serviceType: 'std_srvs/srv/Trigger'
+    });
+    systemDrillService = new ROSLIB.Service({
+        ros: ros,
+        name: '/system/drill',
+        serviceType: 'std_srvs/srv/Trigger'
+    });
+    systemCollectService = new ROSLIB.Service({
+        ros: ros,
+        name: '/system/collect',
+        serviceType: 'std_srvs/srv/Trigger'
+    });
+
 }
 
 function setupESPSubscriptions() {
@@ -243,6 +280,12 @@ function setupESPSubscriptions() {
         messageType: 'std_msgs/msg/Int8'
     });
 
+    const geoFetchSystemStateTopic = new ROSLIB.Topic({
+        ros: ros,
+        name: '/system/state',
+        messageType: 'std_msgs/msg/Int8'
+    });
+
     weightTopic.subscribe(function (message) {
         document.getElementById('container-sample-weight').innerText = message.data.toFixed(2);
     });
@@ -253,6 +296,10 @@ function setupESPSubscriptions() {
 
     drillSystemStateTopic.subscribe(function (message) {
         document.getElementById('drill-system-status').innerText = DrillState[message.data].label;
+    });
+
+    geoFetchSystemStateTopic.subscribe(function (message) {
+        document.getElementById('geofetch-system-status').innerText = SystemState[message.data].label;
     });
 }
 
@@ -335,15 +382,15 @@ function containerNextSample() {
     });
 }
 
-function containerOpen() {
-    if (!containerOpenService || !ros.isConnected) {
+function containerReset() {
+    if (!containerResetService || !ros.isConnected) {
         console.error("Error: Service or ROS not initialized");
         return;
     }
     const request = new ROSLIB.ServiceRequest({});
-    containerOpenService.callService(request, function(result) {
+    containerResetService.callService(request, function(result) {
         if (!result.success) {
-            console.error("Service failed: " + result.message);
+            console.error("Failed: " + result.message);
             return;
         }
         console.log(result.message);
@@ -351,6 +398,24 @@ function containerOpen() {
         console.error("Error calling service:", error);
     });
 }
+
+function containerTare() {
+    if (!containerTareService || !ros.isConnected) {
+        console.error("Error: Service or ROS not initialized");
+        return;
+    }
+    const request = new ROSLIB.ServiceRequest({});
+    containerTareService.callService(request, function(result) {
+        if (!result.success) {
+            console.error("Failed: " + result.message);
+            return;
+        }
+        console.log(result.message);
+    }, function(error) {
+        console.error("Error calling service:", error);
+    });
+}
+
 
 
 
@@ -477,6 +542,57 @@ function stopRetrieving() {
     }
     const request = new ROSLIB.ServiceRequest({});
     drillStopRetrievingService.callService(request, function(result) {
+        if (!result.success) {
+            console.error("Service failed: " + result.message);
+            return;
+        }
+        console.log(result.message);
+    }, function(error) {
+        console.error("Error calling service:", error);
+    });
+}
+
+function systemPrepare() {
+    if (!systemPrepareService || !ros.isConnected) {
+        console.error("Error: Service or ROS not initialized");
+        return;
+    }
+    const request = new ROSLIB.ServiceRequest({});
+    systemPrepareService.callService(request, function(result) {
+        if (!result.success) {
+            console.error("Service failed: " + result.message);
+            return;
+        }
+        console.log(result.message);
+    }, function(error) {
+        console.error("Error calling service:", error);
+    });
+}
+
+function systemDrill() {
+    if (!systemDrillService || !ros.isConnected) {
+        console.error("Error: Service or ROS not initialized");
+        return;
+    }
+    const request = new ROSLIB.ServiceRequest({});
+    systemDrillService.callService(request, function(result) {
+        if (!result.success) {
+            console.error("Service failed: " + result.message);
+            return;
+        }
+        console.log(result.message);
+    }, function(error) {
+        console.error("Error calling service:", error);
+    });
+}
+
+function systemCollect() {
+    if (!systemCollectService || !ros.isConnected) {
+        console.error("Error: Service or ROS not initialized");
+        return;
+    }
+    const request = new ROSLIB.ServiceRequest({});
+    systemCollectService.callService(request, function(result) {
         if (!result.success) {
             console.error("Service failed: " + result.message);
             return;
